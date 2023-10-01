@@ -1,0 +1,140 @@
+/*
+ * This is a manifest file that'll be compiled into application.css, which will include all the files
+ * listed below.
+ *
+ * Any CSS (and SCSS, if configured) file within this directory, lib/assets/stylesheets, or any plugin's
+ * vendor/assets/stylesheets directory can be referenced here using a relative path.
+ *
+ * You're free to add application-wide styles to this file and they'll appear at the bottom of the
+ * compiled file so the styles you add here take precedence over styles defined in any other CSS
+ * files in this directory. Styles in this file should be added after the last require_* statement.
+ * It is generally better to create a new file per style scope.
+ *
+ *= require_tree .
+ *= require_self
+ */
+
+body {
+  font-family: 'Press Start 2P', cursive;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  margin: 0;
+  background-color: skyblue;
+}
+
+h1 {
+  font-size: 72px;
+}
+
+.ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: calc(min(100px, 20%));
+  background-color: #6B4226;
+}
+
+#fern {
+  background-image: url('fern.png');
+  position: absolute;
+  bottom: 25px;
+  left: 10px;
+  width: 100%;
+  height: 125px;
+  z-index: 10;
+}
+
+#cloud {
+  background-image: url('cloud.png'); 
+  position: absolute;
+  transform: scale(3);
+  top: 40px;
+  left: 120px;
+  width: 25px;
+  height: 25px;
+}
+
+#dino1 {
+  background-image: url('dino1.png'); 
+  position: absolute;
+  bottom: calc(min(100px, 20%));
+  right: 100px;
+  width: 48px;
+  height: 48px;
+  z-index: 9;
+}
+
+.button {
+  font-family: 'Press Start 2P', cursive;
+  background-color: #008CBA;
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 4px 2px;
+  cursor: pointer;
+  border: 3px solid black;
+  box-shadow: 2px 2px #000000;
+}
+
+.button-small {
+  font-size: xx-small;
+  padding: 8px 14px;
+}
+
+.button:not(.button-disabled):active {
+  background-color: #005a7a;
+  box-shadow: 0px 0px #000000;
+  transform: translateY(4px);
+}
+
+#grid-container {
+  display: grid;
+  width: 80%;
+  height: 80%;
+  border: 3px solid black;
+}
+
+.grid-item {
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+#info-box {
+  position: fixed;
+  top: 5px;
+  right: 5px;
+  background-color: white;
+  border: 1px solid black;
+  padding: 10px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
+
+.button-disabled {
+  background-color: grey;
+  cursor: not-allowed;
+}
+
+.dinoDiv {
+  position: absolute;
+  transition: transform .5s ease;
+  left: 0px;
+  top: 0px;
+}
+.dinoDiv {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
