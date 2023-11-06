@@ -1,9 +1,7 @@
 Rails.application.routes.draw do
   get 'game/start', to: 'game#start'
   get 'game', to: 'game#start'
-  get 'game/create_unit'
-  get 'game/get_game_state'
-  get 'game/form' to: 'game#orm'
+  get 'game/new_epoch', to: 'game#new_epoch'
 
   get 'home/index', to: 'home#index'
   get 'home', to: 'home#index'

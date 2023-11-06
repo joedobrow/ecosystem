@@ -30,47 +30,6 @@ let FERN_SPAWNRATE = 0.02;
 
 let EPOCH_SPEED = 1000;
 
-// When the page is fully loaded
-$(document).ready(function() {
-  // Fetch the form using AJAX
-  $.ajax({
-    url: '/game/form',
-    type: 'GET',
-    success: function(response) {
-      // Append the form to the body
-      $("body").append('<div id="dialog">' + response + '</div>');
-
-      // Open the dialog
-      $("#dialog").dialog({
-        modal: true,
-        buttons: {
-          "Submit": function() {
-            // Handle form submission here
-          },
-          "Cancel": function() {
-            $(this).dialog("close");
-          }
-        }
-      });
-    }
-  });
-});
-
-// --- Create Units ---
-
-function createUnit(name, x, y) {
-  $.ajax({
-    url: '/game/create_unit',
-    type: 'POST',
-    data: { name: name, x: x, y: y },
-    success: function(response) {
-    },
-    error: function(response) {
-      console.log('Error:', response);
-    }
-  });
-}
-
 // --- Draw Units ---
 
 function drawUnit(name, x, y) {
@@ -151,59 +110,44 @@ function createGrid(rows, cols) {
   }
 
   const gridContainer = document.getElementById('grid-container');
-  
-  for (let i = 0; i < rows * cols; i++) {
-    const x = i % cols;
-    const y = Math.floor(i / cols);
-    const cell = document.getElementById("cell" + x + "-" + y);
-    
-    if (Math.random() < 0.10) {
-      createUnit('dino', x, y);
-    } else if (Math.random() < 0.2) {
-      createUnit('fern', x, y);
-    }
-    
-    gridContainer.appendChild(cell);
-  }
 }
 
 // --- Update Game Every Epoch ---
 
 function updateGame() {
-// grab from backend
   clearUnits();
-  drawUnits();
 
+  $.ajax({
+    url: '/game/new_epoch',
+    type: 'GET',
+    success: function(data) {
+      console.log(data);
+      gameState = data.game_state;
+    },
+    error: function(error) {
+      console.log('Error:', error);
+    }
+  });
+  reDrawUnits();
 }
 
-function drawUnits() {
-  $.ajax({
-    url: '/game/get_game_state',
-    type: 'GET',
-    success: function(response) {
-      const newGameState = response.gameState;
+function reDrawUnits() {
+  console.log(gameState.dinos)
 
-      clearUnits();
+  gameState.dinos.forEach(dino => {
+    drawUnit('dino', dino.x, dino.y);
+  });
 
-      newGameState.dinos.forEach(dino => {
-        drawUnit('dino', dino.x, dino.y);
-      });
+  gameState.ferns.forEach(fern => {
+    drawUnit('fern', fern.x, fern.y);
+  });
 
-      newGameState.ferns.forEach(fern => {
-        drawUnit('fern', fern.x, fern.y);
-      });
+  gameState.diseased_ferns.forEach(diseasedFern => {
+    drawUnit('diseased_fern', diseasedFern.x, diseasedFern.y);
+  });
 
-      newGameState.diseased_ferns.forEach(diseasedFern => {
-        drawUnit('diseased_fern', diseasedFern.x, diseasedFern.y);
-      });
-
-      newGameState.eggs.forEach(egg => {
-        drawUnit('egg', egg.x, egg.y);
-      });
-    },
-    error: function(response) {
-      console.log('Error:', response);
-    }
+  gameState.eggs.forEach(egg => {
+    drawUnit('egg', egg.x, egg.y);
   });
 }
 
@@ -273,51 +217,62 @@ function clearEggs() {
 // --- Start / Pause / + / - Button stuff
 
 document.addEventListener("DOMContentLoaded", function() {
-let startButton = document.getElementById("start-button");
-let pauseButton = document.getElementById("pause-button");
-let plusButton = document.getElementById("faster");
-let minusButton = document.getElementById("slower");
+  let startButton = document.getElementById("start-button");
+  let pauseButton = document.getElementById("pause-button");
+  let plusButton = document.getElementById("faster");
+  let minusButton = document.getElementById("slower");
 
-if (startButton != null && pauseButton != null && plusButton != null && minusButton != null) {
-startButton.addEventListener("click", function() {
-  if (!isRunning) {
-    isRunning = true;
-    startButton.classList.add("button-disabled");
-    pauseButton.classList.remove("button-disabled");
-    timer = setInterval(function() {
-      updateGame(); 
-    }, EPOCH_SPEED);
+  if (startButton != null && pauseButton != null && plusButton != null && minusButton != null) {
+    startButton.addEventListener("click", function() {
+      if (!isRunning) {
+        isRunning = true;
+        startButton.classList.add("button-disabled");
+        pauseButton.classList.remove("button-disabled");
+        timer = setInterval(function() {
+          updateGame(); 
+        }, EPOCH_SPEED);
+      }
+    });
+
+    pauseButton.addEventListener("click", function() {
+      pauseButton.classList.add("button-disabled");
+      startButton.classList.remove("button-disabled");
+      clearInterval(timer); // Clear the interval when "Pause" is clicked
+      isRunning = false;
+    });
+
+    plusButton.addEventListener("click", function() {
+      EPOCH_SPEED -= 200;
+      clearInterval(timer);
+       timer = setInterval(function() {
+        updateGame();
+      }, EPOCH_SPEED);
+    });
+
+    minusButton.addEventListener("click", function() {
+      EPOCH_SPEED += 200;
+      clearInterval(timer);
+      timer = setInterval(function() {
+        updateGame();
+      }, EPOCH_SPEED);
+    });
   }
-});
-
-pauseButton.addEventListener("click", function() {
-  pauseButton.classList.add("button-disabled");
-  startButton.classList.remove("button-disabled");
-  clearInterval(timer); // Clear the interval when "Pause" is clicked
-  isRunning = false;
-});
-
-plusButton.addEventListener("click", function() {
-  EPOCH_SPEED -= 200;
-  clearInterval(timer);
-   timer = setInterval(function() {
-    updateGame();
-  }, EPOCH_SPEED);
-});
-
-minusButton.addEventListener("click", function() {
-  EPOCH_SPEED += 200;
-  clearInterval(timer);
-  timer = setInterval(function() {
-    updateGame();
-  }, EPOCH_SPEED);
-});
-}
-
-
 
   setTimeout(function() {
     createGrid(ROWS, COLS);
   }, 200);
 }); 
+
+document.addEventListener("DOMContentLoaded", function() {
+  $.ajax({
+    url: '/game/start',
+    type: 'GET',
+    success: function() {
+      console.log('Game initialized')
+    },
+    error: function(error) {
+      console.log('Error:', error);
+    }
+  });
+})
 
