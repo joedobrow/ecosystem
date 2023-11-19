@@ -1,10 +1,14 @@
 // --- GLOBAL --
 
 let gameState = {
-  dinos: [],
-  ferns: [],
-  diseased_ferns: [],
-  eggs: [],
+  units: {
+    dinos: [],
+    ferns: [],
+    diseased_ferns: [],
+    eggs: []
+  },
+  epoch: 0,
+  game_over: false
 };
 let DIRECTIONS = [
   { x: 0, y: -1 },  // Up
@@ -32,9 +36,9 @@ let EPOCH_SPEED = 1000;
 
 // --- Draw Units ---
 
-function drawUnit(name, x, y) {
+function drawUnit(name, x, y, id) {
   if (name == 'dino') {
-    drawDino(x, y);
+    drawDino(x, y, id);
   } else if (name == 'fern') {
     drawFern(x, y);
   } else if (name == 'diseased_fern') {
@@ -46,70 +50,89 @@ function drawUnit(name, x, y) {
   }
 }
 
-function drawDino(x, y) {
-  const cell = document.getElementById("cell" + x + "-" + y);
+function drawDino(x, y, id) {
+  var cell = $("#cell" + x + "-" + y);
 
-  const dinoDiv = document.createElement('div');
-  dinoDiv.className = 'dinoDiv';
+  var dinoDiv = $('<div></div>')
+    .addClass('dinoDiv')
+    .attr('id', 'dino-' + id);
 
-  const dinoImage = new Image();;
-  dinoImage.src = imagePaths.dino1;
-  dinoImage.style.width = "60%";
-  dinoImage.style.height = "60%";
-  dinoImage.style.position = 'absolute';
-  dinoImage.className = 'dino'
-  dinoImage.style.transition = 'top 1s ease-in-out';
+  var dinoImage = $('<img>')
+    .attr('src', imagePaths.dino1)
+    .css({
+      width: '60%',
+      height: '60%',
+      position: 'absolute',
+      transition: 'top 1s ease-in-out'
+    })
+    .addClass('dino');
 
-  dinoDiv.appendChild(dinoImage);
-  cell.appendChild(dinoDiv);
+  dinoDiv.append(dinoImage);
+  cell.append(dinoDiv);
 }
 
 function drawFern(x, y) {
-  const cell = document.getElementById("cell" + x + "-" + y);
-  const fernImage = document.createElement('img');
-  fernImage.src = imagePaths.fern;
-  fernImage.style.width = "60%";
-  fernImage.style.height = "60%";
-  fernImage.className = 'fern'
-  cell.appendChild(fernImage);
+  var cell = $("#cell" + x + "-" + y);
+
+  var fernImage = $('<img>')
+    .attr('src', imagePaths.fern)
+    .css({
+      width: '60%',
+      height: '60%'
+    })
+    .addClass('fern');
+
+  cell.append(fernImage);
 }
 
 function drawDiseasedFern(x, y) {
-  const cell = document.getElementById("cell" + x + "-" + y);
-  const fernImage = document.createElement('img');
-  fernImage.src = imagePaths.diseased_fern;
-  fernImage.style.width = "60%";
-  fernImage.style.height = "60%";
-  fernImage.className = 'diseased_fern'
-  cell.appendChild(fernImage);
+  var cell = $("#cell" + x + "-" + y);
+
+  var fernImage = $('<img>')
+    .attr('src', imagePaths.diseased_fern)
+    .css({
+      width: '60%',
+      height: '60%'
+    })
+    .addClass('diseased_fern');
+
+  cell.append(fernImage);
 }
+
 function drawEgg(x, y) {
-  const cell = document.getElementById("cell" + x + "-" + y);
-  const eggImage = document.createElement('img');
-  eggImage.src = imagePaths.egg;
-  eggImage.style.width = "60%";
-  eggImage.style.height = "60%";
-  eggImage.className = 'egg'
-  cell.appendChild(eggImage);
+  // Use jQuery to select the cell by its id
+  var cell = $("#cell" + x + "-" + y);
+
+  // Create the egg image and set its properties with jQuery
+  var eggImage = $('<img>')
+    .attr('src', imagePaths.egg)
+    .css({
+      width: '60%',
+      height: '60%'
+    })
+    .addClass('egg');
+
+  // Append the image to the cell
+  cell.append(eggImage);
 }
 
 // --- Create Main Game Grid ---
 
 function createGrid(rows, cols) {
-  const container = document.getElementById("grid-container");
-  container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-  container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+  var container = $("#grid-container");
+  container.css({
+    'grid-template-columns': `repeat(${cols}, 1fr)`,
+    'grid-template-rows': `repeat(${rows}, 1fr)`
+  });
 
   for (let i = 0; i < rows * cols; i++) {
     const x = i % cols;
     const y = Math.floor(i / cols);
-    const gridItem = document.createElement("div");
-    gridItem.className = "grid-item";
-    gridItem.id = "cell" + x + "-" + y;
-    container.appendChild(gridItem);
+    var gridItem = $('<div>')
+      .addClass('grid-item')
+      .attr('id', 'cell' + x + '-' + y);
+    container.append(gridItem);
   }
-
-  const gridContainer = document.getElementById('grid-container');
 }
 
 // --- Update Game Every Epoch ---
@@ -121,63 +144,97 @@ function updateGame() {
     url: '/game/new_epoch',
     type: 'GET',
     success: function(data) {
-      console.log(data);
       gameState = data.game_state;
+      setEpoch();
+      if (gameState.game_over) {
+        let startButton = document.getElementById("start-button");
+        let pauseButton = document.getElementById("pause-button");
+        pauseButton.classList.add("button-disabled");
+        startButton.classList.add("button-disabled");
+        clearInterval(timer);
+        isRunning = false;
+        alert('Game Over in ' + gameState.epoch + ' epochs.')
+      } else {
+        reDrawUnits(gameState.epoch);
+      }
     },
     error: function(error) {
       console.log('Error:', error);
     }
   });
-  reDrawUnits();
 }
 
-function reDrawUnits() {
-  console.log(gameState.dinos)
-
-  gameState.dinos.forEach(dino => {
-    drawUnit('dino', dino.x, dino.y);
-  });
-
-  gameState.ferns.forEach(fern => {
-    drawUnit('fern', fern.x, fern.y);
-  });
-
-  gameState.diseased_ferns.forEach(diseasedFern => {
-    drawUnit('diseased_fern', diseasedFern.x, diseasedFern.y);
-  });
-
-  gameState.eggs.forEach(egg => {
-    drawUnit('egg', egg.x, egg.y);
-  });
+function reDrawUnits(epoch) {
+  drawDinos(epoch);
+  drawFerns();
+  drawDiseasedFerns();
+  drawEggs();
 }
 
-function drawDinos() {
-  gameState.dinos.forEach(dino => {
-    drawUnit('dino', dino.x, dino.y);
-  });
+function drawDinos(epoch) {
+  if (epoch == 0) {
+    gameState.units.dinos.forEach(dino => {
+      drawUnit('dino', dino.x, dino.y, dino.id);
+    });
+  } else {
+    gameState.units.dinos.forEach(dino => {
+      if (dino.health <= 0) {
+        killDino(dino.id)
+      } else if ($('#dino-' + dino.id).length == 0) {
+        drawUnit('dino', dino.x, dino.y, dino.id);
+      } else {
+        moveDino(dino.id, dino.x, dino.y, dino.og_x, dino.og_y)
+      }
+    });
+  }
 }
 
 function drawFerns() {
-  gameState.ferns.forEach(fern => {
+  gameState.units.ferns.forEach(fern => {
     drawUnit('fern', fern.x, fern.y);
   });
 }
+
 function drawDiseasedFerns() {
-  gameState.diseased_ferns.forEach(fern => {
+  gameState.units.diseased_ferns.forEach(fern => {
     drawUnit('diseased_fern', fern.x, fern.y);
   });
 }
+
 function drawEggs() {
-  gameState.eggs.forEach(egg => {
+  gameState.units.eggs.forEach(egg => {
     drawUnit('egg', egg.x, egg.y);
   });
+}
+
+function moveDino(id, x, y, og_x, og_y) {
+  const dinoElement = $('#dino-' + id);
+  const newCell = $('#cell' + x + '-' + y);
+  const oldCell = $('#cell' + og_x + '-' + og_y)
+  
+
+  const newPosX = newCell.position().left - oldCell.position().left;
+  const newPosY = newCell.position().top - oldCell.position().top;
+
+  dinoElement.css('transform', `translate(${newPosX}px, ${newPosY}px)`);
+}
+
+function killDino(id) {
+  const div = $('#dino-' + id)
+  if (div) {
+    div.remove();
+  }
+}
+  
+function setEpoch() {
+  $('#epoch-number').text(gameState.epoch);
 }
 
 // -- Clear Units ---
 
 function clearUnits() {
   clearFerns();
-  clearDinos();
+  // clearDinos(); -- testing out skipping this in order to use animations
   clearDiseasedFerns();
   clearEggs();
 }
@@ -260,19 +317,19 @@ document.addEventListener("DOMContentLoaded", function() {
 
   setTimeout(function() {
     createGrid(ROWS, COLS);
+    $.ajax({
+        url: '/game/first_epoch',
+        type: 'GET',
+        success: function(data) {
+          gameState = data.game_state; 
+          reDrawUnits(gameState.epoch);
+          setEpoch();
+
+          console.log('Game initialized')
+        },
+        error: function(error) {
+          console.log('Error:', error);
+        }
+      });
   }, 200);
 }); 
-
-document.addEventListener("DOMContentLoaded", function() {
-  $.ajax({
-    url: '/game/start',
-    type: 'GET',
-    success: function() {
-      console.log('Game initialized')
-    },
-    error: function(error) {
-      console.log('Error:', error);
-    }
-  });
-})
-

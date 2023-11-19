@@ -2,6 +2,7 @@ Rails.application.routes.draw do
   get 'game/start', to: 'game#start'
   get 'game', to: 'game#start'
   get 'game/new_epoch', to: 'game#new_epoch'
+  get 'game/first_epoch', to: 'game#first_epoch'
 
   get 'home/index', to: 'home#index'
   get 'home', to: 'home#index'
