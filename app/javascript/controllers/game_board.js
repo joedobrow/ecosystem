@@ -40,11 +40,11 @@ function drawUnit(name, x, y, id) {
   if (name == 'dino') {
     drawDino(x, y, id);
   } else if (name == 'fern') {
-    drawFern(x, y);
+    drawFern(x, y, id);
   } else if (name == 'diseased_fern') {
-    drawDiseasedFern(x, y);
+    drawDiseasedFern(x, y, id);
   } else if (name == 'egg') {
-    drawEgg(x, y);
+    drawEgg(x, y, id);
   } else {
     console.log('bad draw unit name: ' + name);
   }
@@ -71,11 +71,12 @@ function drawDino(x, y, id) {
   cell.append(dinoDiv);
 }
 
-function drawFern(x, y) {
+function drawFern(x, y, id) {
   var cell = $("#cell" + x + "-" + y);
 
   var fernImage = $('<img>')
     .attr('src', imagePaths.fern)
+    .attr('id', 'fern-' + id)
     .css({
       width: '60%',
       height: '60%'
@@ -85,11 +86,12 @@ function drawFern(x, y) {
   cell.append(fernImage);
 }
 
-function drawDiseasedFern(x, y) {
+function drawDiseasedFern(x, y, id) {
   var cell = $("#cell" + x + "-" + y);
 
   var fernImage = $('<img>')
     .attr('src', imagePaths.diseased_fern)
+    .attr('id', 'diseased_fern-' + id)
     .css({
       width: '60%',
       height: '60%'
@@ -99,13 +101,14 @@ function drawDiseasedFern(x, y) {
   cell.append(fernImage);
 }
 
-function drawEgg(x, y) {
+function drawEgg(x, y, id) {
   // Use jQuery to select the cell by its id
   var cell = $("#cell" + x + "-" + y);
 
   // Create the egg image and set its properties with jQuery
   var eggImage = $('<img>')
     .attr('src', imagePaths.egg)
+    .attr('id', 'egg-' + id)
     .css({
       width: '60%',
       height: '60%'
@@ -138,8 +141,6 @@ function createGrid(rows, cols) {
 // --- Update Game Every Epoch ---
 
 function updateGame() {
-  clearUnits();
-
   $.ajax({
     url: '/game/new_epoch',
     type: 'GET',
@@ -155,7 +156,7 @@ function updateGame() {
         isRunning = false;
         alert('Game Over in ' + gameState.epoch + ' epochs.')
       } else {
-        reDrawUnits(gameState.epoch);
+        drawUnits(gameState.epoch);
       }
     },
     error: function(error) {
@@ -164,9 +165,9 @@ function updateGame() {
   });
 }
 
-function reDrawUnits(epoch) {
+function drawUnits(epoch) {
   drawDinos(epoch);
-  drawFerns();
+  drawFerns(epoch);
   drawDiseasedFerns();
   drawEggs();
 }
@@ -179,7 +180,7 @@ function drawDinos(epoch) {
   } else {
     gameState.units.dinos.forEach(dino => {
       if (dino.health <= 0) {
-        killDino(dino.id)
+        killUnit(dino.id, 'dino')
       } else if ($('#dino-' + dino.id).length == 0) {
         drawUnit('dino', dino.x, dino.y, dino.id);
       } else {
@@ -189,21 +190,39 @@ function drawDinos(epoch) {
   }
 }
 
-function drawFerns() {
-  gameState.units.ferns.forEach(fern => {
-    drawUnit('fern', fern.x, fern.y);
-  });
+function drawFerns(epoch) {
+  if (epoch == 0) {
+    gameState.units.ferns.forEach(fern => {
+      drawUnit('fern', fern.x, fern.y, fern.id);
+    });
+  } else {
+    gameState.units.ferns.forEach(fern => {
+      if (fern.health <= 0) {
+        killUnit(fern.id, 'fern')
+      } else if ($('#fern-' + fern.id).length == 0) {
+        drawUnit('fern', fern.x, fern.y, fern.id)
+      }
+    });
+  }
 }
 
 function drawDiseasedFerns() {
   gameState.units.diseased_ferns.forEach(fern => {
-    drawUnit('diseased_fern', fern.x, fern.y);
+    if (fern.health <= 0) {
+      killUnit(fern.id, 'diseased_fern')
+    } else if ($('#diseased_fern-' + fern.id).length == 0) {
+      drawUnit('diseased_fern', fern.x, fern.y, fern.id);
+    }
   });
 }
 
 function drawEggs() {
   gameState.units.eggs.forEach(egg => {
-    drawUnit('egg', egg.x, egg.y);
+    if (egg.health <= 0) {
+      killUnit(egg.id, 'egg')
+    } else if ($('#egg-' + egg.id).length == 0) {
+      drawUnit('egg', egg.x, egg.y, egg.id);
+    }
   });
 }
 
@@ -219,56 +238,15 @@ function moveDino(id, x, y, og_x, og_y) {
   dinoElement.css('transform', `translate(${newPosX}px, ${newPosY}px)`);
 }
 
-function killDino(id) {
-  const div = $('#dino-' + id)
+function killUnit(id, name) {
+  const div = $('#' + name + '-' + id) 
   if (div) {
     div.remove();
-  }
-}
-  
+  } 
+} 
+
 function setEpoch() {
   $('#epoch-number').text(gameState.epoch);
-}
-
-// -- Clear Units ---
-
-function clearUnits() {
-  clearFerns();
-  // clearDinos(); -- testing out skipping this in order to use animations
-  clearDiseasedFerns();
-  clearEggs();
-}
-
-function clearDinos() {
-  const dinoImages = document.querySelectorAll('img.dino');
-  const dinoDivs = document.querySelectorAll('div.dinoDiv');
-  dinoImages.forEach(img => {
-    img.remove();
-  });
-  dinoDivs.forEach(div => {
-    div.remove();
-  });
-}
-
-function clearFerns() {
-  const fernImages = document.querySelectorAll('img.fern');
-  fernImages.forEach(img => {
-    img.remove();
-  });
-}
-
-function clearDiseasedFerns() {
-  const fernImages = document.querySelectorAll('img.diseased_fern');
-  fernImages.forEach(img => {
-    img.remove();
-  });
-}
-
-function clearEggs() {
-  const eggImages = document.querySelectorAll('img.egg');
-  eggImages.forEach(img => {
-    img.remove();
-  });
 }
 
 // --- Start / Pause / + / - Button stuff
@@ -322,7 +300,7 @@ document.addEventListener("DOMContentLoaded", function() {
         type: 'GET',
         success: function(data) {
           gameState = data.game_state; 
-          reDrawUnits(gameState.epoch);
+          drawUnits(gameState.epoch);
           setEpoch();
 
           console.log('Game initialized')

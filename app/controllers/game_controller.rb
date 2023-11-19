@@ -21,16 +21,19 @@ class GameController < ApplicationController
   def initialize_game_state
 
     session[:dino_health] = 11
-    session[:dino_baby_health] = 4
-    session[:dino_reproduce_health] = 5
+    session[:baby_dino_health] = 4
+    session[:dino_reproduce_health] = 6
     session[:fern_health] = 10
     session[:egg_health] = 3
-    session[:fern_spawnrate] = 0.02
+    session[:fern_spawnrate] = 0.08
 
     session[:board_height] = 6
     session[:board_width] = 9
 
     session[:last_dino_id] = 0
+    session[:last_fern_id] = 0
+    session[:last_egg_id] = 0
+    session[:last_diseased_fern_id] = 0
 
     session[:initialized] = 0
 
@@ -73,12 +76,14 @@ class GameController < ApplicationController
 
   def update_epoch
     # careful, ordering matters!
+
+    units_die
+    decay_ferns
     move_dinos_randomly
     dinos_eat_ferns
-    hungry_dinos_die
     hatch_eggs
     poop_eggs
-    decay_ferns
+    sicken_ferns
     check_for_diseased_ferns
     spawn_ferns
 
@@ -119,15 +124,18 @@ class GameController < ApplicationController
   end
 
   def create_fern(x, y)
-    @game_state[:units][:ferns].push({ x: x, y: y, health: session[:fern_health] })
+    @game_state[:units][:ferns].push({ id: session[:last_fern_id], x: x, y: y, health: session[:fern_health] })
+    session[:last_fern_id] += 1
   end
 
   def create_diseased_fern(x, y)
-    @game_state[:units][:diseased_ferns].push({ x: x, y: y})
+    @game_state[:units][:diseased_ferns].push({ id: session[:last_diseased_fern_id], x: x, y: y, health: 1})
+    session[:last_diseased_fern_id] += 1
   end
 
   def create_egg(x, y)
-    @game_state[:units][:eggs].push({ x: x, y: y, health: session[:egg_health] })
+    @game_state[:units][:eggs].push({ id: session[:last_egg_id], x: x, y: y, health: session[:egg_health] })
+    session[:last_egg_id] += 1
   end
 
   def move_dino_randomly(dino)
@@ -170,57 +178,45 @@ class GameController < ApplicationController
   end
 
   def dinos_eat_ferns
-    ferns_to_delete = []
-    dinos_to_delete = []
-    diseased_ferns_to_delete = []
-    @game_state[:units][:dinos].each_with_index do |dino, dinoIndex|
-      # Eating health ferns
-      @game_state[:units][:ferns].each_with_index do |fern, index|
+    @game_state[:units][:dinos].each do |dino|
+    # Eating health ferns
+      @game_state[:units][:ferns].each do |fern|
         if fern[:x] == dino[:x] && fern[:y] == dino[:y]
-          ferns_to_delete << index
+          fern[:health] = 0
           dino[:health] = session[:dino_health]
         end
       end
    
       # Eating diseased ferns
-      @game_state[:units][:diseased_ferns].each_with_index do |fern, index|
+      @game_state[:units][:diseased_ferns].each do |fern|
         if fern[:x] == dino[:x] && fern[:y] == dino[:y]
-          diseased_ferns_to_delete << index
-          if (dino[:health] < 3)
-            dinos_to_delete << index
-          else
-            dino[:health] -= 2
-          end
+          fern[:health] = 0
+          dino[:health] -= 2
         end
       end
     end
-
-    ferns_to_delete.reverse_each { |index| @game_state[:units][:ferns].delete_at(index) }
-    dinos_to_delete.reverse_each { |index| @game_state[:units][:dinos].delete_at(index) }
-    diseased_ferns_to_delete.reverse_each { |index| @game_state[:units][:diseased_ferns].delete_at(index) }
   end
 
-  def hungry_dinos_die
-    dinos_to_delete = []
-    @game_state[:units][:dinos].each_with_index do |dino, index|
-      if (dino[:health] < 0)
-        dinos_to_delete << index
+  def units_die
+    @game_state[:units].each do |name, array|
+      units_to_delete = []
+      array.each_with_index do |unit, index|
+        if (unit[:health] <= 0)
+          units_to_delete << index
+        end
       end
-    end
-    dinos_to_delete.reverse_each { |index| @game_state[:units][:dinos].delete_at(index) }
+      units_to_delete.reverse_each { |index| @game_state[:units][name].delete_at(index) }
+    end 
   end
-
+       
   def hatch_eggs
-    eggs_to_delete = []
-    @game_state[:units][:eggs].each_with_index do |egg, index|
+    @game_state[:units][:eggs].each do |egg|
       if egg[:health] > 0
         egg[:health] -= 1
       else
-        eggs_to_delete << index
-        create_unit(:dino, egg[:x], egg[:y])
+        create_unit(:baby_dino, egg[:x], egg[:y])
       end
     end
-    eggs_to_delete.reverse_each { |index| @game_state[:units][:eggs].delete_at(index) }
   end
         
 
@@ -238,15 +234,11 @@ class GameController < ApplicationController
   end
 
   def decay_ferns
-    ferns_to_delete = []
-    @game_state[:units][:ferns].each_with_index do |fern, index|
-      if fern[:health] > 0
+    @game_state[:units][:ferns].each do |fern|
+      if fern[:health] >= 0
         fern[:health] -= 1
-      else
-        ferns_to_delete << index
       end
     end
-    ferns_to_delete.reverse_each { |index| @game_state[:units][:ferns].delete_at(index) }
   end
 
   def check_for_diseased_ferns
@@ -274,11 +266,35 @@ class GameController < ApplicationController
   def make_coordinate_diseased_ferns(i, j)
     for ii in (i - 1)..(i + 1)
       for jj in (j - 1)..(j + 1)
-        @game_state[:units][:ferns].delete_if { |fern| fern[:x] == ii && fern[:y] == jj }
-        create_unit(:diseased_fern, ii, jj)
+        @game_state[:units][:ferns].each do |fern|
+          if fern[:x] == ii && fern[:y] == jj
+            fern[:health] = 0 # Set the health to 0 to indicate a diseased fern 
+          end
+        end
+        if !@game_state[:units][:diseased_ferns].any? { |fern| fern[:x] == ii && fern[:y] == jj } 
+          create_unit(:diseased_fern, ii, jj)
+        end
       end
     end
   end
+
+  def sicken_ferns()
+    @game_state[:units][:ferns].each do |fern|
+      if @game_state[:units][:diseased_ferns].any? { |diseased_fern| 
+        diseased_fern[:x] == fern[:x] + 1 && diseased_fern[:y] == fern[:y] ||
+        diseased_fern[:x] == fern[:x] - 1 && diseased_fern[:y] == fern[:y] ||
+        diseased_fern[:x] == fern[:x] && diseased_fern[:y] + 1 == fern[:y] ||
+        diseased_fern[:x] == fern[:x] && diseased_fern[:y] - 1 == fern[:y] }
+        fern[:health] -= 1
+        if fern[:health] == 0
+          if !@game_state[:units][:diseased_ferns].any? { |diseased_fern| diseased_fern[:x] == fern[:x] && diseased_fern[:y] == fern[:y] }
+            create_unit(:diseased_fern, fern[:x], fern[:y])
+          end
+        end
+      end
+    end
+  end
+        
 
   def spawn_ferns
     for i in 0..session[:board_width]
@@ -300,5 +316,4 @@ class GameController < ApplicationController
     session[:fern_spawnrate] = @game_state[:units][:ferns].length.to_f / (session[:board_width] * session[:board_height] * 4)
     Rails.logger.debug("spawnrate: " + session[:fern_spawnrate].to_s)
   end
-
 end
