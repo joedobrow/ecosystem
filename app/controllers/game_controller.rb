@@ -45,6 +45,10 @@ class GameController < ApplicationController
         eggs: []
       },
       epoch: 0,
+      constants: {
+        board_height: session[:board_height],
+        board_width: session[:board_width]
+      },
       game_over: false
     }
 

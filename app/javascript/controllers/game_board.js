@@ -1,36 +1,9 @@
 // --- GLOBAL --
 
-let gameState = {
-  units: {
-    dinos: [],
-    ferns: [],
-    diseased_ferns: [],
-    eggs: []
-  },
-  epoch: 0,
-  game_over: false
-};
-let DIRECTIONS = [
-  { x: 0, y: -1 },  // Up
-  { x: 0, y: 1 },   // Down
-  { x: -1, y: 0 },  // Left
-  { x: 1, y: 0 }    // Right
-];
-
+let gameState = {};
 let epoch = 0; 
 let timer;
 let isRunning = false;
-
-// --- Customize me ---
-
-let ROWS = 6;
-let COLS = 10;
-let DINO_HEALTH = 11;
-let DINO_BABY_HEALTH = 4;
-let DINO_REPRODUCE_HEALTH = 5;
-let FERN_HEALTH = 10;
-let EGG_HEALTH = 3;
-let FERN_SPAWNRATE = 0.02;
 
 let EPOCH_SPEED = 1000;
 
@@ -148,12 +121,10 @@ function updateGame() {
       gameState = data.game_state;
       setEpoch();
       if (gameState.game_over) {
-        let startButton = document.getElementById("start-button");
-        let pauseButton = document.getElementById("pause-button");
-        pauseButton.classList.add("button-disabled");
-        startButton.classList.add("button-disabled");
         clearInterval(timer);
         isRunning = false;
+        $('#pause-button').addClass("button-disabled");
+        $('#startButton').addClass("button-disabled");
         alert('Game Over in ' + gameState.epoch + ' epochs.')
       } else {
         drawUnits(gameState.epoch);
@@ -250,56 +221,51 @@ function setEpoch() {
 }
 
 // --- Start / Pause / + / - Button stuff
-
-document.addEventListener("DOMContentLoaded", function() {
-  let startButton = document.getElementById("start-button");
-  let pauseButton = document.getElementById("pause-button");
-  let plusButton = document.getElementById("faster");
-  let minusButton = document.getElementById("slower");
-
-  if (startButton != null && pauseButton != null && plusButton != null && minusButton != null) {
-    startButton.addEventListener("click", function() {
+$(document).ready(function() {
+  var $startButton = $("#start-button");
+  var $pauseButton = $("#pause-button");
+  var $plusButton = $("#faster");
+  var $minusButton = $("#slower");
+  
+  if ($startButton.length && $pauseButton.length && $plusButton.length && $minusButton.length) {
+    $startButton.on("click", function() {
       if (!isRunning) {
         isRunning = true;
-        startButton.classList.add("button-disabled");
-        pauseButton.classList.remove("button-disabled");
-        timer = setInterval(function() {
-          updateGame(); 
-        }, EPOCH_SPEED);
+        $startButton.addClass("button-disabled");
+        $pauseButton.removeClass("button-disabled");
+        timer = setInterval(updateGame, EPOCH_SPEED);
       }
     });
-
-    pauseButton.addEventListener("click", function() {
-      pauseButton.classList.add("button-disabled");
-      startButton.classList.remove("button-disabled");
-      clearInterval(timer); // Clear the interval when "Pause" is clicked
+    
+    $pauseButton.on("click", function() {
+      $(this).addClass("button-disabled");
+      $startButton.removeClass("button-disabled");
+      clearInterval(timer);
       isRunning = false;
     });
-
-    plusButton.addEventListener("click", function() {
-      EPOCH_SPEED -= 200;
-      clearInterval(timer);
-       timer = setInterval(function() {
-        updateGame();
-      }, EPOCH_SPEED);
+    
+    $plusButton.on("click", function() {
+      if (EPOCH_SPEED > 200) {
+        EPOCH_SPEED -= 200;
+        clearInterval(timer);
+        timer = setInterval(updateGame, EPOCH_SPEED);
+      }
     });
-
-    minusButton.addEventListener("click", function() {
+    
+    $minusButton.on("click", function() {
       EPOCH_SPEED += 200;
       clearInterval(timer);
-      timer = setInterval(function() {
-        updateGame();
-      }, EPOCH_SPEED);
+      timer = setInterval(updateGame, EPOCH_SPEED);
     });
   }
 
   setTimeout(function() {
-    createGrid(ROWS, COLS);
     $.ajax({
         url: '/game/first_epoch',
         type: 'GET',
         success: function(data) {
           gameState = data.game_state; 
+          createGrid(gameState.constants.board_height, gameState.constants.board_width);
           drawUnits(gameState.epoch);
           setEpoch();
 
