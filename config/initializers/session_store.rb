@@ -12,5 +12,12 @@ if Rails.env.production?
     threadsafe: false,
     secure: true
 else 
-  Rails.application.config.session_store :cookie_store, key: '_ecosystem_game_session'
+  Rails.application.config.session_store :redis_store,
+    servers: [
+      {
+        url: 'redis://localhost:6379',
+        namespace: 'session'
+      },
+    ],
+    expire_after: 120.minutes
 end

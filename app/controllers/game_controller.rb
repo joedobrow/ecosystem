@@ -215,9 +215,8 @@ class GameController < ApplicationController
        
   def hatch_eggs
     @game_state[:units][:eggs].each do |egg|
-      if egg[:health] > 0
-        egg[:health] -= 1
-      else
+      egg[:health] -= 1
+      if egg[:health] == 0
         create_unit(:baby_dino, egg[:x], egg[:y])
       end
     end
