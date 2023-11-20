@@ -1,8 +1,8 @@
 # config/initializers/session_store.rb
-Rails.application.config.session_store :redis_store, {
+Rails.application.config.session_store :redit_store, key: '_ecosystem_game_session'
   servers: [
     {
-      url: ENV['redis://default:hmsl1ZzFx8Ac9tqjZSPbvmvsodfgOehM@redis-16905.c246.us-east-1-4.ec2.cloud.redislabs.com:16905'],
+      url: ENV['REDIS_URL'],
       namespace: "session"
     },
   ],
