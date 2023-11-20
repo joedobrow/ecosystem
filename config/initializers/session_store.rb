@@ -1,10 +1,12 @@
 # config/initializers/session_store.rb
-Rails.application.config.session_store :redis_store, {
+Rails.application.config.session_store :redis_store,
   servers: [
     {
       url: ENV['REDISCLOUD_URL'],
       namespace: "session"
     },
   ],
-  expire_after: 120.minutes # Expire cookie
-}
+  expire_after: 120.minutes,
+  key: "_ecosystem_game_session",
+  threadsafe: false,
+  secure: true
