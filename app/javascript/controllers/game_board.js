@@ -264,6 +264,7 @@ $(document).ready(function() {
         url: '/game/first_epoch',
         type: 'GET',
         success: function(data) {
+console.log('HERE2: ' + data.game_state.constants.board_height)
           gameState = data.game_state; 
           createGrid(gameState.constants.board_height, gameState.constants.board_width);
           drawUnits(gameState.epoch);
