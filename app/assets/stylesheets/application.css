@@ -94,6 +94,13 @@ h1 {
   transform: translateY(4px);
 }
 
+.button-home {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  margin: 10px;
+}
+
 #grid-container {
   display: grid;
   width: 80%;
@@ -135,4 +142,13 @@ h1 {
   justify-content: center;
   height: 100%;
   width: 100%;
+}
+
+.info-wrapper {
+  display: block; 
+  background-color: #FCFFF5; 
+  width: 500px; 
+  padding:20px; 
+  border-radius:10px; 
+  line-height: 1.3;
 }

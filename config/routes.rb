@@ -7,6 +7,8 @@ Rails.application.routes.draw do
   get 'home/index', to: 'home#index'
   get 'home', to: 'home#index'
 
+  get 'about', to: 'about#index'
+
   get '/', to: 'home#index'
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
