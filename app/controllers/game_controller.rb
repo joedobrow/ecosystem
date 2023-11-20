@@ -7,7 +7,6 @@ class GameController < ApplicationController
 
   def first_epoch
     initialize_game_state
-    @game_state = session[:game_state].deep_symbolize_keys
     render json: { game_state: @game_state }
   end
 
